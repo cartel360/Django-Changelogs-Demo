@@ -1,4 +1,5 @@
 {% extends "products/base.html" %}
+{% load history_tags %}
 
 {% block content %}
 <h1 class="mb-4">Change History for {{ object.name }}</h1>
@@ -23,27 +24,27 @@
             <td>{{ record.history_user|default:"System" }}</td>
             <td>
                 {% if record.prev_record %}
+                {% with changes=record|diff_against:record.prev_record %}
+                {% if changes.changes %}
                 <ul class="mb-0">
-                    {% for field in record.tracked_fields %}
-                    {% if field == 'id' or field == 'history_id' %}
-                    {% continue %}
-                    {% endif %}
-                    {% if record|get_field:field != record.prev_record|get_field:field %}
+                    {% for change in changes.changes %}
                     <li>
-                        <strong>{{ field }}:</strong>
-                        {{ record.prev_record|get_field:field }} → {{ record|get_field:field }}
+                        <strong>{{ change.field }}:</strong>
+                        {{ change.old|default:"(empty)" }} → {{ change.new|default:"(empty)" }}
                     </li>
-                    {% endif %}
                     {% endfor %}
                 </ul>
+                {% else %}
+                No fields changed (metadata only)
+                {% endif %}
+                {% endwith %}
                 {% else %}
                 Initial version
                 {% endif %}
             </td>
             <td>
                 {% if not forloop.first %}
-                <a href="{% url 'product-revert' object.pk record.history_id %}"
-                    class="btn btn-sm btn-warning">Revert</a>
+                <a href="{% url 'product-revert' object.pk record.history_id %}" class="btn btn-sm btn-warning">Revert</a>
                 {% endif %}
             </td>
         </tr>

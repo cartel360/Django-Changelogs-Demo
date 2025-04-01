@@ -1,0 +1,57 @@
+{% extends "products/base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Change History for {{ object.name }}</h1>
+
+<a href="{% url 'product-list' %}" class="btn btn-secondary mb-4">Back to Products</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Version</th>
+            <th>Date</th>
+            <th>User</th>
+            <th>Changes</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in history %}
+        <tr>
+            <td>{{ record.history_id }}</td>
+            <td>{{ record.history_date|date:"Y-m-d H:i" }}</td>
+            <td>{{ record.history_user|default:"System" }}</td>
+            <td>
+                {% if record.prev_record %}
+                <ul class="mb-0">
+                    {% for field in record.tracked_fields %}
+                    {% if field == 'id' or field == 'history_id' %}
+                    {% continue %}
+                    {% endif %}
+                    {% if record|get_field:field != record.prev_record|get_field:field %}
+                    <li>
+                        <strong>{{ field }}:</strong>
+                        {{ record.prev_record|get_field:field }} → {{ record|get_field:field }}
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% else %}
+                Initial version
+                {% endif %}
+            </td>
+            <td>
+                {% if not forloop.first %}
+                <a href="{% url 'product-revert' object.pk record.history_id %}"
+                    class="btn btn-sm btn-warning">Revert</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No history available</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

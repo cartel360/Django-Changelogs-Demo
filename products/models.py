@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 import json
+from django.contrib.contenttypes.models import ContentType
 
 class ChangeLog(models.Model):
     ACTION_CREATE = 'create'
@@ -48,8 +49,7 @@ class TrackedModel(models.Model):
     
     def save(self, *args, **kwargs):
         """Track changes on save"""
-        from django.contrib.contenttypes.models import ContentType
-        
+
         change_reason = kwargs.pop('change_reason', None)
         request = kwargs.pop('request', None)
         
@@ -79,7 +79,9 @@ class TrackedModel(models.Model):
                     user_agent=user_agent
                 )
         else:
-            # New instance - track creation
+            # New instance - first save to get a PK
+            super().save(*args, **kwargs)
+
             ChangeLog.objects.create(
                 content_type=ContentType.objects.get_for_model(self.__class__),
                 object_id=self.pk,  # Will be None until saved
@@ -89,6 +91,7 @@ class TrackedModel(models.Model):
                 ip_address=ip_address,
                 user_agent=user_agent
             )
+            return  # Skip the second save
         
         super().save(*args, **kwargs)
         

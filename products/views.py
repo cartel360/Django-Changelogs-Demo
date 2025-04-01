@@ -1,6 +1,8 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+
+from products.forms import ProductForm
 from .models import Product
 from django.views.generic import DetailView
 from django.contrib.contenttypes.models import ContentType
@@ -11,32 +13,38 @@ class ProductListView(ListView):
     context_object_name = 'products'
 
 class ProductCreateView(LoginRequiredMixin, CreateView):
+    form_class = ProductForm  # Use custom form instead of 'fields'
     model = Product
-    fields = ['name', 'description', 'price', 'quantity']
     success_url = reverse_lazy('product-list')
     
-    def form_valid(self, form):
-        form.instance.updated_by = self.request.user
-        return super().form_valid(form)
-    
     def get_form_kwargs(self):
+        """Pass the request object to the form"""
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
         return kwargs
+    
+    def form_valid(self, form):
+        """Set the updated_by user and handle change logging"""
+        form.instance.updated_by = self.request.user
+        
+        # Save with the request for change logging
+        response = super().form_valid(form)
+        
+        return response
 
 class ProductUpdateView(LoginRequiredMixin, UpdateView):
+    form_class = ProductForm
     model = Product
-    fields = ['name', 'description', 'price', 'quantity']
     success_url = reverse_lazy('product-list')
-    
-    def form_valid(self, form):
-        form.instance.updated_by = self.request.user
-        return super().form_valid(form)
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
         return kwargs
+    
+    def form_valid(self, form):
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product
